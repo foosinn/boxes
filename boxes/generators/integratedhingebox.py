@@ -35,6 +35,8 @@ class IntegratedHingeBox(Boxes):
     def render(self):
 
         x, y, h, hl = self.x, self.y, self.h, self.lidheight
+        if hl < 30:
+            raise ValueError("unable to draw limiters with lidheight < 30")
 
         if self.outside:
             x = self.adjustSize(x)
@@ -51,16 +53,43 @@ class IntegratedHingeBox(Boxes):
         e_back = ("F", e1, "e", e2)
 
         self.rectangularWall(y, h-hy, "FfOf", ignore_widths=[2], move="up")
-        self.rectangularWall(y, hl-hy2, "pfFf", ignore_widths=[1], move="up")
+        self.rectangularWall(y, hl-hy2, "pfFf", ignore_widths=[1], move="up",
+                callback=[lambda: self.fingerHolesAt(hy, 1.5*t-hy2, y-hy2, 0)])
         self.rectangularWall(y, h-hy, "Ffof", ignore_widths=[5], move="up")
-        self.rectangularWall(y, hl-hy2, "PfFf", ignore_widths=[6], move="up")
+        self.rectangularWall(y, hl-hy2, "PfFf", ignore_widths=[6], move="up",
+                callback=[lambda: self.fingerHolesAt(0, 1.5*t-hy2, y-hy2, 0)])
+
+        # screen door
+        d1 = edges.CompoundEdge(self, "fe", (y-hy, hy))
+        d2 = edges.CompoundEdge(self, "ef", (hy, y-hy))
+        e_door = (d1, "f", d2, "f")
+        self.rectangularWall(y, x, e_door, move="up")
+
         self.rectangularWall(x, h, "FFeF", move="up")
-        self.rectangularWall(x, h, e_back, move="up")
-        self.rectangularWall(x, hl, "FFeF", move="up")
-        self.rectangularWall(x, hl-hy2, "FFqF", move="up")
+
+        # bottom back
+        def back_support():
+            self.fingerHolesAt(5, 0, hl, 90)
+            self.fingerHolesAt(x-5, 0, hl, 90)
+        self.rectangularWall(x, h, e_back, move="up",
+                callback=[None, None, back_support])
+
+        # screen frontside
+        self.rectangularWall(x, hl, "FFeF", move="up",
+                callback=[None, None, lambda: self.fingerHolesAt(0, 1.5*t, x, 0)])
+
+        # screen back
+        self.rectangularWall(x, hl-hy2, "FFqF", move="up",
+                callback=[None, None, lambda: self.fingerHolesAt(0, 1.5*t-hy2, x, 0)])
 
         self.rectangularWall(y, x, "ffff", move="up")
-        self.rectangularWall(y, x, "ffff")
+        self.rectangularWall(y, x, "ffff", move="up")
 
-
+        # screen holders
+        for i in range(0, 2):
+            self.moveTo(0, hl, 270)
+            self.polyline(hl, 100)
+            self.edges["f"](hl)
+            self.polyline(0, 90, 0, (80, hl), 0, 90)
+            self.moveTo(0, hl)
 
